@@ -34,8 +34,8 @@ app.layout = html.Div([
     ], style = {'width':'50%', 'margin':'auto'}),
     html.Br(),
     html.Div(id='tab-output'),
+    html.Div(html.P(["Data: COVID-19 Open Research Dataset (CORD-19). 2020."], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'})),
     html.Div(html.P(["Created by: Brian VandenAkker"], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'})),
-    html.Div(html.P(["Data: COVID-19 Open Research Dataset (CORD-19). 2020."], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'}))
 ])
 
 @app.callback(Output('tab-output', 'children'),
@@ -143,4 +143,4 @@ def similar_text_new(n_clicks, load_page, process_text, n_articles = 10):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
