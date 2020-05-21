@@ -24,8 +24,9 @@ lda = pickle.load(open("model/lda_model.pkl", "rb"))
 app.layout = html.Div([
     html.Br(),
     html.Br(),
-    html.H1('Accelerate Your Learning', style = {'text-align': 'center', 'font-family':'sans-serif'}),
-    html.H4("Search the COVID-19 Research Database or Enter the Text From a Paper You're Interested In. We'll Read the Paper You're Interested in, and Provide Recommendations for Further Reading Based on Those Interests",
+    html.H1('Accelerate Your Research', style = {'text-align': 'center', 'font-family':'sans-serif'}),
+    html.Br(),
+    html.H5("Search the COVID-19 research database or enter the text from a paper you're interested in. The algorithm will read the paper and provide recommendations for further reading based on your interests.",
             style = {'text-align': 'center', 'font-family':'sans-serif'}),
     dcc.Tabs(id='tabs', value='tab-1', children=[
         dcc.Tab(label='Search Database', value='tab-1'),
@@ -33,6 +34,8 @@ app.layout = html.Div([
     ], style = {'width':'50%', 'margin':'auto'}),
     html.Br(),
     html.Div(id='tab-output'),
+    html.Div(html.P(["Created by: Brian VandenAkker"], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'})),
+    html.Div(html.P(["Data: COVID-19 Open Research Dataset (CORD-19). 2020."], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'}))
 ])
 
 @app.callback(Output('tab-output', 'children'),
@@ -44,18 +47,17 @@ def render_content(tab):
                 options = [{'label': f"{title}", 'value':f"{index}"} for index, title in enumerate(covid_papers['title'])],
                 placeholder = "Search Papers")], style = {'width':'50%' , 'margin':'auto'}),
                 html.Div(html.Ul(id = 'similar-papers-db'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}),
-                dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
-                                                                                                                'margin-bottom': '10%px',
-                                                                                                                'verticalAlign': 'middle'})])
+                dbc.Button("", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '-100%'})])
     elif tab == 'tab-2':
         return html.Div([dcc.Textarea(
                 id='text-box',
-                placeholder = "Enter The Text You'd Like us to Read Here. We'll Process the Text and Return the Papers from the COVID-19 Database which are Closest to Your Entry. ",
+                placeholder = "Enter the text you're interested in here. We'll process the text and return the papers from the COVID-19 database which are similar to your entry.",
                 style={'width': '100%', 'height': 300}),
-                html.Div(html.Ul(id='similar-papers-new'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}),
-                dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
+                dbc.Button("Process Text", id='button_load', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
                                                                                                                 'margin-bottom': '10%px',
-                                                                                                                'verticalAlign': 'middle'})])
+                                                                                                                'verticalAlign': 'middle'}),
+                html.Div(html.Ul(id='similar-papers-new'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}),
+                dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '-100%'})])
 @app.callback(
     Output(component_id='similar-papers-db', component_property= 'children'),
     [Input(component_id='paper-search', component_property='value'),
@@ -87,14 +89,19 @@ def similar_text_from_db(paper_search, n_clicks, n_articles = 10):
                     dbc.ListGroupItemText(f"Published: {info[4]}", style={'text-align': 'left', 'font-size': 'smaller'}),
                     dbc.ListGroupItemText(info[2], style={'text-align':'justify'}),
                 ])], flush=True))
+    out.append(html.Br())
+    out.append(dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
+                                                                                                    'margin-bottom': '10%px',
+                                                                                                    'verticalAlign': 'middle'}))
     return out
 
 @app.callback(
     Output(component_id='similar-papers-new', component_property= 'children'),
-    [Input(component_id='text-box', component_property='value'),
-     Input(component_id='button', component_property = 'n_clicks')]
+    [Input(component_id='button', component_property = 'n_clicks'),
+    Input(component_id='button_load', component_property='n_clicks')],
+    [State(component_id='text-box', component_property='value')]
 )
-def similar_text_new(process_text, n_clicks, n_articles = 10):
+def similar_text_new(n_clicks, load_page, process_text, n_articles = 10):
     if process_text is None:
         raise PreventUpdate
 
@@ -113,17 +120,24 @@ def similar_text_new(process_text, n_clicks, n_articles = 10):
         data = [covid_papers.loc[int(i[0]), ['title', 'url', 'abstract', 'authors' ,'publish_time']] for i in most_similar[1:(n_articles+1)]]
     else:
         data = [covid_papers.loc[int(i[0]), ['title', 'url', 'abstract', 'authors' ,'publish_time']] for i in most_similar[1:(n_articles+1 +(n_articles*n_clicks))]]
-    out = []
-    for info in data:
-        out.append(dbc.ListGroup([
-            dbc.ListGroupItem(
-                [
-                    dbc.ListGroupItem(dbc.ListGroupItemHeading(info[0]), href=info[1], target="_blank"),
-                    html.Br(),
-                    dbc.ListGroupItemText(f"Authors: {info[3]}", style = {'text-align': 'left', 'font-size': 'small'}),
-                    dbc.ListGroupItemText(f"Published: {info[4]}", style={'text-align': 'left', 'font-size': 'smaller'}),
-                    dbc.ListGroupItemText(info[2], style={'text-align':'justify'}),
-                ])], flush=True))
+    if load_page is None:
+        raise PreventUpdate
+    else:
+        out = []
+        for info in data:
+            out.append(dbc.ListGroup([
+                dbc.ListGroupItem(
+                    [
+                        dbc.ListGroupItem(dbc.ListGroupItemHeading(info[0]), href=info[1], target="_blank"),
+                        html.Br(),
+                        dbc.ListGroupItemText(f"Authors: {info[3]}", style = {'text-align': 'left', 'font-size': 'small'}),
+                        dbc.ListGroupItemText(f"Published: {info[4]}", style={'text-align': 'left', 'font-size': 'smaller'}),
+                        dbc.ListGroupItemText(info[2], style={'text-align':'justify'}),
+                    ])], flush=True))
+    out.append(html.Br())
+    out.append(dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
+                                                                                                    'margin-bottom': '10%px',
+                                                                                                    'verticalAlign': 'middle'}))
     return out
 
 
