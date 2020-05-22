@@ -14,12 +14,12 @@ from sklearn.decomposition import LatentDirichletAllocation
 
 app = dash.Dash(suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-covid_papers = pd.read_csv("data/covid_papers.csv", index_col=[0])
+covid_papers = pd.read_csv("data/covid_papers.csv").drop(columns=['Unnamed: 0'])
 
 vec = pickle.load(open("model/feature.pkl", "rb"))
 lda = pickle.load(open("model/lda_model.pkl", "rb"))
 
-
+options = [{'label': f"{title}", 'value':f"{index}"} for index, title in enumerate(covid_papers['title'])]
 
 app.layout = html.Div([
     html.Br(),
@@ -38,15 +38,23 @@ app.layout = html.Div([
     html.Div(html.P(["Created by: Brian VandenAkker"], style= {'text-align': 'center','font-size': '10px', 'verticleAlign': 'text-bottom'})),
 ])
 
+@app.callback(
+    Output("paper-search", "options"),
+    [Input("paper-search", "search_value")],
+)
+def update_options(search_value):
+    if not search_value:
+        raise PreventUpdate
+    return [paper for paper in options if search_value in paper["label"]]
+
+
 @app.callback(Output('tab-output', 'children'),
               [Input('tabs', 'value')])
 def render_content(tab):
     if tab == 'tab-1':
         return html.Div([
-                html.Div([dcc.Dropdown(id="paper-search",
-                options = [{'label': f"{title}", 'value':f"{index}"} for index, title in enumerate(covid_papers['title'])],
-                placeholder = "Search Papers")], style = {'width':'50%' , 'margin':'auto'}),
-                html.Div(html.Ul(id = 'similar-papers-db'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}),
+                html.Div([dcc.Dropdown(id="paper-search", placeholder = "Search Papers in COVID-19 Open Research Dataset...")], style = {'width':'50%' , 'margin':'auto'}),
+                dcc.Loading(html.Div(html.Ul(id = 'similar-papers-db'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}), type = "cube"),
                 dbc.Button("", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '-100%'})])
     elif tab == 'tab-2':
         return html.Div([dcc.Textarea(
@@ -56,8 +64,8 @@ def render_content(tab):
                 dbc.Button("Process Text", id='button_load', outline=True, color="primary", className="mr-1", style={'margin-left': '46%',
                                                                                                                 'margin-bottom': '10%px',
                                                                                                                 'verticalAlign': 'middle'}),
-                html.Div(html.Ul(id='similar-papers-new'), style={'font-family':'sans-serif', 'width': '70%', 'margin':'10%'}),
-                dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '-100%'})])
+                dcc.Loading(html.Div(html.Ul(id='similar-papers-new'), style={'font-family':'sans-serif', 'width': '90%', 'margin-right':'10%'}), type = "cube"),
+                dbc.Button("Load More", id='button', outline=True, color="primary", className="mr-1", style={'margin-left': '-100%'})], style = {'margin-left':'10%','margin-right':'10%'})
 @app.callback(
     Output(component_id='similar-papers-db', component_property= 'children'),
     [Input(component_id='paper-search', component_property='value'),
@@ -143,4 +151,4 @@ def similar_text_new(n_clicks, load_page, process_text, n_articles = 10):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
