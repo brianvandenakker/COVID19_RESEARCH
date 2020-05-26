@@ -1,0 +1,1 @@
+web gunicorn covid_paper_search:server

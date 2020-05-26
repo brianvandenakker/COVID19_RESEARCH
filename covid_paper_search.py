@@ -13,9 +13,11 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
 app = dash.Dash(suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
-server = app.server
 
-covid_papers = pd.read_csv("data/covid_papers.csv").drop(columns=['Unnamed: 0'])
+
+data_source = "data/covid_papers.csv"
+
+covid_papers = pd.read_csv(data_source)#.drop(columns=['Unnamed: 0'])
 
 vec = pickle.load(open("model/feature.pkl", "rb"))
 lda = pickle.load(open("model/lda_model.pkl", "rb"))
@@ -149,7 +151,7 @@ def similar_text_new(n_clicks, load_page, process_text, n_articles = 10):
                                                                                                     'verticalAlign': 'middle'}))
     return out
 
-
+server = app.server
 
 if __name__ == '__main__':
     app.run_server(debug=True)
